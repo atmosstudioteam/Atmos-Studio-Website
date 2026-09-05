@@ -1,7 +1,7 @@
 (() => {
   const sourcePage = document.body.dataset.sourcePage || 'index.html';
   const sourceBase = 'https://atmosstudioteam.github.io/Atmos-Studio/';
-  const root = document.getElementById('page-root');
+  const placeholder = document.getElementById('page-root');
 
   const loadScript = (src) => new Promise((resolve, reject) => {
     const script = document.createElement('script');
@@ -63,10 +63,12 @@
 
       document.body.className = parsed.body.className;
       document.body.dataset.sourcePage = sourcePage;
-      root.replaceChildren(...sourceMain.childNodes);
 
-      rewriteLocalAssets(root);
-      addRevealTargets(root);
+      const main = document.importNode(sourceMain, true);
+      placeholder.replaceWith(main);
+
+      rewriteLocalAssets(main);
+      addRevealTargets(main);
 
       await loadScript(sourceBase + 'language-switcher.js?v=20260811-3');
 
@@ -77,7 +79,7 @@
         ]);
       }
     } catch (error) {
-      root.innerHTML = `
+      placeholder.innerHTML = `
         <main class="page load-error-page">
           <section class="load-error-card">
             <span class="brand-mark"></span>
