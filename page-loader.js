@@ -11,13 +11,40 @@
     document.body.appendChild(script);
   });
 
+  const absoluteSourceUrl = (value) => {
+    if (!value) return value;
+    if (/^(?:https?:)?\/\//i.test(value) || value.startsWith('data:')) return value;
+    return new URL(value, sourceBase + sourcePage).href;
+  };
+
+  const installSourceStyles = (parsed) => {
+    const redesignLinks = Array.from(document.querySelectorAll('link[data-redesign-style]'));
+
+    parsed.head.querySelectorAll('style').forEach((sourceStyle) => {
+      const style = document.createElement('style');
+      style.dataset.sourceFallback = 'true';
+      style.textContent = sourceStyle.textContent;
+      document.head.appendChild(style);
+    });
+
+    parsed.head.querySelectorAll('link[rel="stylesheet"]').forEach((sourceLink) => {
+      const href = sourceLink.getAttribute('href');
+      if (!href) return;
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = absoluteSourceUrl(href);
+      link.dataset.sourceFallback = 'true';
+      document.head.appendChild(link);
+    });
+
+    redesignLinks.forEach((link) => document.head.appendChild(link));
+  };
+
   const rewriteLocalAssets = (container) => {
     container.querySelectorAll('[src]').forEach((node) => {
       const value = node.getAttribute('src');
       if (!value) return;
-      if (value.startsWith('./assets/')) {
-        node.setAttribute('src', sourceBase + value.slice(2));
-      }
+      if (value.startsWith('./assets/')) node.setAttribute('src', absoluteSourceUrl(value));
     });
   };
 
@@ -45,7 +72,6 @@
       const html = await response.text();
       const parsed = new DOMParser().parseFromString(html, 'text/html');
       const sourceMain = parsed.querySelector('main.page');
-
       if (!sourceMain) throw new Error('Source page structure was not found');
 
       const sourceTitle = parsed.querySelector('title');
@@ -61,12 +87,13 @@
         current.content = sourceDescription.content;
       }
 
+      installSourceStyles(parsed);
+
       document.body.className = parsed.body.className;
       document.body.dataset.sourcePage = sourcePage;
 
       const main = document.importNode(sourceMain, true);
       placeholder.replaceWith(main);
-
       rewriteLocalAssets(main);
       addRevealTargets(main);
 
@@ -78,6 +105,8 @@
           loadScript(sourceBase + 'release-notice.js')
         ]);
       }
+
+      document.documentElement.classList.add('source-ready');
     } catch (error) {
       placeholder.innerHTML = `
         <main class="page load-error-page">
