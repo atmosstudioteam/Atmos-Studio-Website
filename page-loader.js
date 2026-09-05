@@ -18,8 +18,6 @@
   };
 
   const installSourceStyles = (parsed) => {
-    const redesignLinks = Array.from(document.querySelectorAll('link[data-redesign-style]'));
-
     parsed.head.querySelectorAll('style').forEach((sourceStyle) => {
       const style = document.createElement('style');
       style.dataset.sourceFallback = 'true';
@@ -37,7 +35,14 @@
       document.head.appendChild(link);
     });
 
-    redesignLinks.forEach((link) => document.head.appendChild(link));
+    let redesign = document.querySelector('link[data-source-redesign]');
+    if (!redesign) {
+      redesign = document.createElement('link');
+      redesign.rel = 'stylesheet';
+      redesign.dataset.sourceRedesign = 'true';
+      redesign.href = new URL('./source-overrides.css?v=20260905-2', window.location.href).href;
+    }
+    document.head.appendChild(redesign);
   };
 
   const rewriteLocalAssets = (container) => {
